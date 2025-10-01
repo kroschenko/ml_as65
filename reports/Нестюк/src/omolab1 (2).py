@@ -40,27 +40,27 @@ plt.title("Матрица корреляции признаков Boston Housing
 plt.tight_layout()
 plt.show()
 
-correlation_with_target = correlation_matrix['MEDV'].sort_values(ascending=False)
+correlation_with_target = correlation_matrix['MEDV']
 
-most_important_feature = correlation_with_target.index[1]
-correlation_value = correlation_with_target.iloc[1]
+correlation_with_target_abs = correlation_with_target.drop('MEDV').abs()
+most_important_feature = correlation_with_target_abs.idxmax()
+correlation_value = correlation_with_target[most_important_feature]
 
 print(f"САМЫЙ ВАЖНЫЙ ПРИЗНАК ДЛЯ ЦЕНЫ: '{most_important_feature}'")
 print(f"КОРРЕЛЯЦИЯ: {correlation_value}")
 
-correlation_with_target = df.corr()['MEDV'].sort_values(ascending=False)
-most_correlated_feature = correlation_with_target.index[1]
-highest_correlation = correlation_with_target.iloc[1]
+most_important_feature = correlation_with_target.drop('MEDV').abs().idxmax()
+highest_correlation = correlation_with_target[most_important_feature]
 
 plt.figure(figsize=(10, 6))
-plt.scatter(df[most_correlated_feature], df['MEDV'], alpha=0.7, edgecolors='w', linewidth=0.5)
-plt.xlabel(most_correlated_feature)
+plt.scatter(df[most_important_feature], df['MEDV'], alpha=0.7, edgecolors='w', linewidth=0.5)
+plt.xlabel(most_important_feature)
 plt.ylabel('MEDV')
-plt.title(f'Зависимость стоимости дома от {most_correlated_feature}\n(Корреляция: {highest_correlation:.2f})')
+plt.title(f'Зависимость стоимости дома от {most_important_feature}\n(Корреляция: {highest_correlation:.2f})')
 
-z = np.polyfit(df[most_correlated_feature], df['MEDV'], 1)
+z = np.polyfit(df[most_important_feature], df['MEDV'], 1)
 p = np.poly1d(z)
-plt.plot(df[most_correlated_feature], p(df[most_correlated_feature]), "r--", alpha=0.8)
+plt.plot(df[most_important_feature], p(df[most_important_feature]), "r--", alpha=0.8)
 
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
