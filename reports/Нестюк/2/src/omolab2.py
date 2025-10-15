@@ -8,85 +8,100 @@ Original file is located at
 """
 
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.metrics import mean_absolute_error, r2_score, accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
 
-url = "https://raw.githubusercontent.com/stedy/Machine-Learning-with-R-datasets/master/insurance.csv"
-data = pd.read_csv(url)
+from google.colab import files
+uploaded = files.upload()
 
-print("Размер данных:", data.shape)
-print(data.head())
+df_medical = pd.read_csv('medical_cost_personal_dataset.csv')
 
-data_encoded = pd.get_dummies(data, drop_first=True)
+df_medical['sex'] = df_medical['sex'].map({'male': 0, 'female': 1})
+df_medical['smoker'] = df_medical['smoker'].map({'no': 0, 'yes': 1})
+df_medical['region'] = LabelEncoder().fit_transform(df_medical['region'])
 
-X = data_encoded.drop("charges", axis=1)
-y = data_encoded["charges"]
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+X = df_medical.drop('charges', axis=1)
+y = df_medical['charges']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 model = LinearRegression()
 model.fit(X_train, y_train)
-
 y_pred = model.predict(X_test)
 
 mae = mean_absolute_error(y_test, y_pred)
 r2 = r2_score(y_test, y_pred)
+print(f"MAE: {mae:.2f}")
+print(f"R2: {r2:.4f}")
 
-print(f"MAE (Средняя абсолютная ошибка): {mae:.2f}")
-print(f"R2 (Коэффициент детерминации): {r2:.4f}")
+plt.figure(figsize=(12, 4))
 
-plt.figure(figsize=(8,6))
-sns.scatterplot(x=data["bmi"], y=data["charges"], alpha=0.6)
+plt.subplot(1, 2, 1)
+plt.scatter(df_medical['bmi'], df_medical['charges'], alpha=0.5)
+plt.xlabel('BMI')
+plt.ylabel('Charges')
+plt.title('Charges vs BMI')
 
-sns.regplot(x=data["bmi"], y=data["charges"], scatter=False, color="red")
+plt.subplot(1, 2, 2)
+bmi_model = LinearRegression()
+bmi_model.fit(df_medical[['bmi']], df_medical['charges'])
+bmi_range = [[df_medical['bmi'].min()], [df_medical['bmi'].max()]]
+bmi_pred = bmi_model.predict(bmi_range)
 
-plt.xlabel("Индекс массы тела (BMI)")
-plt.ylabel("Медицинские расходы (charges)")
-plt.title("Зависимость расходов от BMI")
+plt.scatter(df_medical['bmi'], df_medical['charges'], alpha=0.5)
+plt.plot([df_medical['bmi'].min(), df_medical['bmi'].max()], bmi_pred, color='red', linewidth=2)
+plt.xlabel('BMI')
+plt.ylabel('Charges')
+plt.title('Линия регрессии')
+
+plt.tight_layout()
 plt.show()
 
-url = "https://raw.githubusercontent.com/sharmaroshan/Heart-UCI-Dataset/master/heart.csv"
-data = pd.read_csv(url)
+from google.colab import files
+uploaded = files.upload()
 
-print("Размер данных:", data.shape)
-print(data.head())
+df_medical = pd.read_csv('heart_disease_uci.csv')
 
-X = data.drop("target", axis=1)
-y = data["target"]
+df_medical['target'] = (df_medical['num'] > 0).astype(int)
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
-)
+features = ['age', 'trestbps', 'chol', 'thalch', 'oldpeak']
+df_clean = df_medical[features + ['target']].dropna()
+
+X = df_clean[features]
+y = df_clean['target']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
 model = LogisticRegression(max_iter=1000)
 model.fit(X_train, y_train)
-
 y_pred = model.predict(X_test)
 
-acc = accuracy_score(y_test, y_pred)
-prec = precision_score(y_test, y_pred)
-rec = recall_score(y_test, y_pred)
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
 f1 = f1_score(y_test, y_pred)
 
-print(f"Accuracy:  {acc:.4f}")
-print(f"Precision: {prec:.4f}")
-print(f"Recall:    {rec:.4f}")
-print(f"F1-score:  {f1:.4f}")
+print(f"Accuracy: {accuracy:.4f}")
+print(f"Precision: {precision:.4f}")
+print(f"Recall: {recall:.4f}")
+print(f"F1-score: {f1:.4f}")
 
 cm = confusion_matrix(y_test, y_pred)
+print("\nМатрица ошибок:")
+print(cm)
 
-plt.figure(figsize=(6,5))
-sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
-            xticklabels=["Нет болезни", "Есть болезнь"],
-            yticklabels=["Нет болезни", "Есть болезнь"])
-plt.xlabel("Предсказанный класс")
-plt.ylabel("Фактический класс")
-plt.title("Матрица ошибок")
+print("\n [ [TN, FP] \n [FN, TP] ] \n")
+
+plt.figure(figsize=(5, 4))
+plt.imshow(cm, cmap='Blues')
+for i in range(2):
+    for j in range(2):
+        plt.text(j, i, str(cm[i, j]), ha='center', va='center', fontsize=20)
+plt.xticks([0, 1], )
+plt.yticks([0, 1], )
+plt.xlabel
+plt.ylabel
+plt.title('Матрица ошибок')
 plt.show()
