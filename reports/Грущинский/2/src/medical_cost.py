@@ -7,7 +7,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, r2_score
 
-data = pd.read_csv('medical_cost_personal_dataset.csv')
+data = pd.read_csv(r'C:\Users\GRUDA\OneDrive\Документы\3 курс\ОМО\lab1_correct\ml_as65\reports\Грущинский\2\src\medical_cost_personal_dataset.csv')
 
 data_encoded = pd.get_dummies(data, drop_first=True)
 
@@ -26,10 +26,13 @@ r2 = r2_score(y_test, y_pred)
 print(f"MAE: {mae}, R2: {r2}")
 
 plt.figure(figsize=(10, 6))
-sns.scatterplot(x=data['bmi'], y=data['charges'])
-sns.lineplot(x=data['bmi'], y=model.predict(pd.get_dummies(data.drop('charges', axis=1), drop_first=True)), color='red')
+
+# sns.regplot автоматически строит линию регрессии (исправляет неадекватность)
+sns.regplot(x='bmi', y='charges', data=data, 
+            scatter_kws={'alpha':0.6}, 
+            line_kws={'color':'red', 'linewidth':3})
+
 plt.title('Зависимость Charges от BMI с линией регрессии')
 plt.xlabel('BMI')
 plt.ylabel('Charges')
 plt.show()
-##коммент для нового коммита

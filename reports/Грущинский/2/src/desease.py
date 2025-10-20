@@ -5,7 +5,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
 
-heart_data = pd.read_csv('heart_disease_uci.csv').dropna()
+heart_data = pd.read_csv(r'C:\Users\GRUDA\OneDrive\Документы\3 курс\ОМО\lab1_correct\ml_as65\reports\Грущинский\2\src\heart_disease_uci.csv').dropna()
 
 X = heart_data.drop('num', axis=1)
 y = heart_data['num']
