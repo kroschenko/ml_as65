@@ -1,5 +1,7 @@
 import pandas as pd
+import os
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 
 data = pd.read_csv("Titanic-Dataset.csv")
 
@@ -40,3 +42,10 @@ data['FamilySize'] = data['SibSp'] + data['Parch']
 
 print("\nПервые строки с новым признаком FamilySize:")
 print(data[['SibSp', 'Parch', 'FamilySize']].head())
+
+scaler = StandardScaler()
+numeric_features = ['Age', 'Fare', 'SibSp', 'Parch', 'FamilySize']
+data[numeric_features] = scaler.fit_transform(data[numeric_features])
+
+print("\nСтандартизированные данные (первые 5 строк):")
+print(data[numeric_features].head())
