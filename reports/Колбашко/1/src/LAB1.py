@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-df = pd.read_csv("C:\\Users\\wlksm\\OneDrive\\Рабочий стол\\Уник\\OMO\\Kolbashko\\src\\Melbourne.csv")
+df = pd.read_csv("C:\\Users\\wlksm\\OneDrive\\Рабочий стол\\Уник\\OMO\\ml_as65\\reports\\Kolbashko\\src\\Melbourne_housing.csv")
 
 missing_values = df.isnull().sum()
 column_with_most_missing = missing_values.idxmax()
@@ -31,10 +31,4 @@ df['PropertyAge'] = current_year - df['YearBuilt']
 print(f"\nСтатистика по возрасту недвижимости:")
 print(df['PropertyAge'].describe())
 
-print(f"\nУникальные значения Type до кодирования:")
-print(df['Type'].value_counts())
-type_encoded = pd.get_dummies(df['Type'], prefix='Type')
-df = pd.concat([df, type_encoded], axis=1)
-print(f"\nДобавлены новые столбцы:")
-print([col for col in df.columns if col.startswith('Type_')])
 
