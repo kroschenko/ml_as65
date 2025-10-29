@@ -2,44 +2,41 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import r2_score, mean_squared_error
 
-# Загрузка данных
-df = pd.read_csv('auto-mpg.csv')
-print(df.shape)
+# 1. Загрузка данных
+df = pd.read_csv('Fish.csv')
 
-# обработка нулей
-df['horsepower'] = pd.to_numeric(df['horsepower'], errors='coerce')
-df = df.dropna(subset=['cylinders', 'horsepower', 'weight', 'mpg'])
-print(df.shape)
+# 2. Подготовка признаков и целевой переменной
+X = df[['Length1', 'Length2', 'Length3', 'Height', 'Width']]
+y = df['Weight']
 
-# обучение
-X = df[['cylinders', 'horsepower', 'weight']]
-y = df['mpg']
-model=LinearRegression().fit(X,y)
-y_m = model.predict(X)
+# 3. Обучение модели линейной регрессии
+model = LinearRegression()
+model.fit(X, y)
 
-#4. признаки
-mse=mean_squared_error(y,y_m)
-print(mse)
-r2=r2_score(y,y_m)
-print(r2)
+# 4. Предсказание и оценка качества
+y_pred = model.predict(X)
 
-#5. визуализация
-plt.scatter(df['horsepower'], df['mpg'], color='blue',  label='Фактические данные')
-mean_cylinders = np.mean(df['cylinders'])
-mean_weight = np.mean(df['weight'])
-sorted_hp = np.sort(df['horsepower'])
-#значения
-hp_line = pd.DataFrame({
-    'cylinders': mean_cylinders,
-    'horsepower': sorted_hp,
-    'weight': mean_weight
-})
-plt.plot(sorted_hp, model.predict(hp_line), color='red', label='Линия регрессии')
-plt.title('зависимость mpg от horsepower с линией регрессии')
-plt.xlabel('Horsepower')
-plt.ylabel('MPG')
-plt.legend()
-plt.grid(True)
+# Расчет метрик
+r2 = r2_score(y, y_pred)
+rmse = np.sqrt(mean_squared_error(y, y_pred))
+
+print(f"R²: {r2:.4f}")
+print(f"RMSE: {rmse:.4f}")
+
+# 5. Диаграмма рассеяния для Length3 и Weight с линией регрессии
+plt.figure(figsize=(8, 6))
+plt.scatter(df['Length3'], df['Weight'], alpha=0.7)
+plt.xlabel('Length3')
+plt.ylabel('Weight')
+plt.title('Length3 vs Weight')
+
+# Линия регрессии для Length3
+x_line = pd.DataFrame({'Length3': np.linspace(df['Length3'].min(), df['Length3'].max(), 100)})
+model_length3 = LinearRegression()
+model_length3.fit(df[['Length3']], y)
+y_line = model_length3.predict(x_line)
+
+plt.plot(x_line['Length3'], y_line, color='red', linewidth=2)
 plt.show()
