@@ -20,10 +20,18 @@ plt.xlabel("Статус")
 plt.ylabel("Количество")
 plt.show()
 
+plt.hist(data['Age'], bins=20, color='skyblue', edgecolor='black')
+plt.title("Распределение возраста пассажиров")
+plt.xlabel("Возраст")
+plt.ylabel("Количество")
+plt.show()
+
 print("\nПропуски в Age до обработки:", data['Age'].isnull().sum())
 
 median_age = data['Age'].median()
 data['Age'] = data['Age'].fillna(median_age)
+
+print(median_age)
 
 print("Пропуски в Age после обработки:", data['Age'].isnull().sum())
 
@@ -32,12 +40,6 @@ data_encoded = pd.get_dummies(data, columns=['Sex', 'Embarked'], drop_first=True
 
 print("\nДанные после One-Hot Encoding:")
 print(data_encoded.head())
-
-plt.hist(data['Age'], bins=20, color='skyblue', edgecolor='black')
-plt.title("Распределение возраста пассажиров")
-plt.xlabel("Возраст")
-plt.ylabel("Количество")
-plt.show()
 
 data_encoded['FamilySize'] = data_encoded['SibSp'] + data_encoded['Parch']
 
