@@ -1,36 +1,41 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix, ConfusionMatrixDisplay
-import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
 
-#1. Загрузка
-df = pd.read_csv("pima-indians-diabetes.csv", skiprows=9, header=None)
-df.columns = [
-    'Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness',
-    'Insulin', 'BMI', 'DiabetesPedigree', 'Age', 'Outcome'
-]
-print(df.head())
-print("Размер данных:", df.shape)
+# 1. Загрузка данных
+df = pd.read_csv("bank.csv", delimiter=';')
 
-#2. разделение признаков и целевой
-X = df.drop('Outcome', axis=1)
-y = df['Outcome']
+# 2. Преобразование категориальных признаков
+categorical_columns = ['job', 'marital', 'education', 'default', 'housing', 'loan', 'contact', 'month', 'poutcome']
 
-#3. Стандартизация признаков
+for col in categorical_columns:
+    le = LabelEncoder()
+    df[col] = le.fit_transform(df[col].astype(str))
+
+# Преобразование целевой переменной
+le_y = LabelEncoder()
+df['y'] = le_y.fit_transform(df['y'])
+
+# 3. Подготовка данных
+X = df.drop('y', axis=1)
+y = df['y']
+
+# Стандартизация
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
-X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
-print(X_scaled)
 
-#4. разделение на обучающую и тестовую выборку и обучение
+# Разделение на train/test
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.3, random_state=42)
-model = LogisticRegression()
+
+# 4. Обучение модели логистической регрессии
+model = LogisticRegression(random_state=42, max_iter=1000)
 model.fit(X_train, y_train)
 
-#5. Предсказание и рассчет
+# 5. Предсказания и метрики
 y_pred = model.predict(X_test)
+
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
 recall = recall_score(y_test, y_pred)
@@ -39,8 +44,7 @@ print(f"Accuracy: {accuracy:.4f}")
 print(f"Precision: {precision:.4f}")
 print(f"Recall: {recall:.4f}")
 
-#6.матрица
+# 6. Матрица ошибок
 matrix = confusion_matrix(y_test, y_pred)
+print("Матрица ошибок:")
 print(matrix)
-print(f"Ложноположительные (FP): {matrix[0][1]}")
-print(f"Ложноотрицательные (False Negatives): {matrix[1][0]}")
