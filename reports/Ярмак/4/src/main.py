@@ -2,7 +2,7 @@ import pandas as pd
 import time
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, recall_score
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -92,9 +92,10 @@ with torch.no_grad():
 
 acc = accuracy_score(y_test, y_pred_classes)
 f1 = f1_score(y_test, y_pred_classes)
+recall = recall_score(y_test, y_pred_classes)
 
 print("\n===========\n64 neurons\n===========")
-print(f"Accuracy: {acc:.4f}, F1-score: {f1:.4f}")
+print(f"Accuracy: {acc:.4f}, F1-score: {f1:.4f}, Recall: {recall:.4f}")
 print(f"Training time {train_time:.2f} sec")
 
 
@@ -123,7 +124,8 @@ with torch.no_grad():
 
 acc_small = accuracy_score(y_test, y_pred_classes)
 f1_small = f1_score(y_test, y_pred_classes)
+recall_small = recall_score(y_test, y_pred_classes)
 
 print("\n===========\n16 neurons\n===========")
-print(f"Accuracy: {acc_small:.4f}, F1-score: {f1_small:.4f}")
+print(f"Accuracy: {acc_small:.4f}, F1-score: {f1_small:.4f}, Recall: {recall_small:.4f}")
 print(f"Training time: {train_time_small:.2f} sec")
