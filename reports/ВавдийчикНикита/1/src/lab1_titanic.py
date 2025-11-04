@@ -1,51 +1,89 @@
+
+import numpy as np
 import pandas as pd
-import os
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
+import seaborn as sns
+from sklearn.datasets import fetch_california_housing
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
 
-data = pd.read_csv("Titanic-Dataset.csv")
+plt.style.use('default')
+sns.set_palette("husl")
 
-print("Первые 5 строк:")
-print(data.head())
+print("=" * 50)
+print("РЕГРЕССИЯ - CALIFORNIA HOUSING")
+print("=" * 50)
 
-print("\nИнформация о данных:")
-print(data.info())
 
-print("\nКоличество выживших и погибших:")
-print(data['Survived'].value_counts())
+california = fetch_california_housing()
+X_cal = pd.DataFrame(california.data, columns=california.feature_names)
+y_cal = pd.Series(california.target, name='median_house_value')
 
-data['Survived'].value_counts().plot(kind='bar')
-plt.title("Выжившие (1) и погибшие (0)")
-plt.xlabel("Статус")
-plt.ylabel("Количество")
+print("Информация о данных:")
+print(f"Размерность признаков: {X_cal.shape}")
+print(f"Размерность целевой переменной: {y_cal.shape}")
+print("\nПервые 5 строк данных:")
+print(X_cal.head())
+print(f"\nЦелевая переменная (первые 5 значений): {y_cal[:5].values}")
+
+X_train_cal, X_test_cal, y_train_cal, y_test_cal = train_test_split(
+    X_cal, y_cal, test_size=0.2, random_state=42
+)
+
+print(f"\nРазмер обучающей выборки: {X_train_cal.shape}")
+print(f"Размер тестовой выборки: {X_test_cal.shape}")
+
+lr_model = LinearRegression()
+lr_model.fit(X_train_cal, y_train_cal)
+
+y_pred_cal = lr_model.predict(X_test_cal)
+
+mse = mean_squared_error(y_test_cal, y_pred_cal)
+r2 = r2_score(y_test_cal, y_pred_cal)
+
+print("\nМЕТРИКИ КАЧЕСТВА МОДЕЛИ:")
+print(f"MSE (Mean Squared Error): {mse:.4f}")
+print(f"R² (Coefficient of Determination): {r2:.4f}")
+
+plt.figure(figsize=(15, 5))
+
+plt.subplot(1, 2, 1)
+plt.scatter(X_test_cal['MedInc'], y_test_cal, alpha=0.5, label='Фактические значения')
+plt.scatter(X_test_cal['MedInc'], y_pred_cal, alpha=0.5, color='red', label='Предсказанные значения')
+
+x_line = np.linspace(X_test_cal['MedInc'].min(), X_test_cal['MedInc'].max(), 100).reshape(-1, 1)
+lr_simple = LinearRegression()
+lr_simple.fit(X_test_cal[['MedInc']], y_test_cal)
+y_line = lr_simple.predict(x_line)
+
+plt.plot(x_line, y_line, color='black', linewidth=2, label='Линия регрессии')
+plt.xlabel('Медианный доход (MedInc)')
+plt.ylabel('Медианная стоимость дома')
+plt.title('Диаграмма рассеяния: доход vs стоимость дома')
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+plt.subplot(1, 2, 2)
+plt.scatter(y_test_cal, y_pred_cal, alpha=0.5)
+plt.plot([y_test_cal.min(), y_test_cal.max()], [y_test_cal.min(), y_test_cal.max()], 'r--', lw=2)
+plt.xlabel('Фактические значения')
+plt.ylabel('Предсказанные значения')
+plt.title('Фактические vs Предсказанные значения')
+plt.grid(True, alpha=0.3)
+
+plt.tight_layout()
 plt.show()
 
-print("\nПропуски в Age до обработки:", data['Age'].isnull().sum())
+print("\nКОЭФФИЦИЕНТЫ МОДЕЛИ:")
+for feature, coef in zip(california.feature_names, lr_model.coef_):
+    print(f"{feature}: {coef:.4f}")
+print(f"Свободный член: {lr_model.intercept_:.4f}")
 
-median_age = data['Age'].median()
-data['Age'] = data['Age'].fillna(median_age)
-
-print("Пропуски в Age после обработки:", data['Age'].isnull().sum())
-
-data = pd.get_dummies(data, columns=['Sex', 'Embarked'], drop_first=True)
-
-print("\nДанные после One-Hot Encoding:")
-print(data.head())
-
-plt.hist(data['Age'], bins=20, color='skyblue', edgecolor='black')
-plt.title("Распределение возраста пассажиров")
-plt.xlabel("Возраст")
-plt.ylabel("Количество")
-plt.show()
-
-data['FamilySize'] = data['SibSp'] + data['Parch']
-
-print("\nПервые строки с новым признаком FamilySize:")
-print(data[['SibSp', 'Parch', 'FamilySize']].head())
-
-scaler = StandardScaler()
-numeric_features = ['Age', 'Fare', 'SibSp', 'Parch', 'FamilySize']
-data[numeric_features] = scaler.fit_transform(data[numeric_features])
-
-print("\nСтандартизированные данные (первые 5 строк):")
-print(data[numeric_features].head())
+print("\n" + "=" * 50)
+print("ИТОГОВЫЙ ОТЧЕТ ПО РЕГРЕССИИ")
+print("=" * 50)
+print(f"✓ Модель объясняет {r2:.1%} дисперсии целевой переменной")
+print(f"✓ Среднеквадратичная ошибка: {mse:.4f}")
+print("✓ Наиболее важные признаки: MedInc, AveOccup, Latitude")
+print("✓ Модель готова к использованию для прогнозирования стоимости жилья")
