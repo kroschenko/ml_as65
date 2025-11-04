@@ -1,89 +1,93 @@
-
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.datasets import fetch_california_housing
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
+import numpy as np
 
-plt.style.use('default')
-sns.set_palette("husl")
+# Загрузка данных
+df = pd.read_csv("Titanic-Dataset.csv")
 
-print("=" * 50)
-print("РЕГРЕССИЯ - CALIFORNIA HOUSING")
-print("=" * 50)
+# Просмотр данных
+print("Первые 5 записей:")
+print(df.head())
 
+print("\nСведения о данных:")
+print(df.info())
 
-california = fetch_california_housing()
-X_cal = pd.DataFrame(california.data, columns=california.feature_names)
-y_cal = pd.Series(california.target, name='median_house_value')
+print("\nРаспределение по выживаемости:")
+survival_counts = df['Survived'].value_counts()
+print(survival_counts)
 
-print("Информация о данных:")
-print(f"Размерность признаков: {X_cal.shape}")
-print(f"Размерность целевой переменной: {y_cal.shape}")
-print("\nПервые 5 строк данных:")
-print(X_cal.head())
-print(f"\nЦелевая переменная (первые 5 значений): {y_cal[:5].values}")
-
-X_train_cal, X_test_cal, y_train_cal, y_test_cal = train_test_split(
-    X_cal, y_cal, test_size=0.2, random_state=42
-)
-
-print(f"\nРазмер обучающей выборки: {X_train_cal.shape}")
-print(f"Размер тестовой выборки: {X_test_cal.shape}")
-
-lr_model = LinearRegression()
-lr_model.fit(X_train_cal, y_train_cal)
-
-y_pred_cal = lr_model.predict(X_test_cal)
-
-mse = mean_squared_error(y_test_cal, y_pred_cal)
-r2 = r2_score(y_test_cal, y_pred_cal)
-
-print("\nМЕТРИКИ КАЧЕСТВА МОДЕЛИ:")
-print(f"MSE (Mean Squared Error): {mse:.4f}")
-print(f"R² (Coefficient of Determination): {r2:.4f}")
-
-plt.figure(figsize=(15, 5))
-
-plt.subplot(1, 2, 1)
-plt.scatter(X_test_cal['MedInc'], y_test_cal, alpha=0.5, label='Фактические значения')
-plt.scatter(X_test_cal['MedInc'], y_pred_cal, alpha=0.5, color='red', label='Предсказанные значения')
-
-x_line = np.linspace(X_test_cal['MedInc'].min(), X_test_cal['MedInc'].max(), 100).reshape(-1, 1)
-lr_simple = LinearRegression()
-lr_simple.fit(X_test_cal[['MedInc']], y_test_cal)
-y_line = lr_simple.predict(x_line)
-
-plt.plot(x_line, y_line, color='black', linewidth=2, label='Линия регрессии')
-plt.xlabel('Медианный доход (MedInc)')
-plt.ylabel('Медианная стоимость дома')
-plt.title('Диаграмма рассеяния: доход vs стоимость дома')
-plt.legend()
-plt.grid(True, alpha=0.3)
-
-plt.subplot(1, 2, 2)
-plt.scatter(y_test_cal, y_pred_cal, alpha=0.5)
-plt.plot([y_test_cal.min(), y_test_cal.max()], [y_test_cal.min(), y_test_cal.max()], 'r--', lw=2)
-plt.xlabel('Фактические значения')
-plt.ylabel('Предсказанные значения')
-plt.title('Фактические vs Предсказанные значения')
-plt.grid(True, alpha=0.3)
-
-plt.tight_layout()
+# Визуализация выживаемости
+plt.figure(figsize=(8, 5))
+survival_counts.plot(kind='bar', color=['lightcoral', 'lightgreen'])
+plt.title("Распределение пассажиров по выживаемости")
+plt.xlabel("Выжил (1) / Не выжил (0)")
+plt.ylabel("Число пассажиров")
+plt.xticks(rotation=0)
 plt.show()
 
-print("\nКОЭФФИЦИЕНТЫ МОДЕЛИ:")
-for feature, coef in zip(california.feature_names, lr_model.coef_):
-    print(f"{feature}: {coef:.4f}")
-print(f"Свободный член: {lr_model.intercept_:.4f}")
+# Обработка пропущенных значений в возрасте
+print(f"\nПропущенных значений в возрасте до обработки: {df['Age'].isna().sum()}")
 
-print("\n" + "=" * 50)
-print("ИТОГОВЫЙ ОТЧЕТ ПО РЕГРЕССИИ")
-print("=" * 50)
-print(f"✓ Модель объясняет {r2:.1%} дисперсии целевой переменной")
-print(f"✓ Среднеквадратичная ошибка: {mse:.4f}")
-print("✓ Наиболее важные признаки: MedInc, AveOccup, Latitude")
-print("✓ Модель готова к использованию для прогнозирования стоимости жилья")
+median_age = df['Age'].median()
+df['Age'] = df['Age'].fillna(median_age)
+
+print(f"Пропущенных значений в возрасте после обработки: {df['Age'].isna().sum()}")
+
+# Анализ категориальных переменных перед преобразованием
+print("\n--- Анализ категориальных переменных ---")
+print("Уникальные значения Sex:", df['Sex'].unique())
+print("Распределение Sex:")
+print(df['Sex'].value_counts())
+
+print("\nУникальные значения Embarked:", df['Embarked'].unique())
+print("Распределение Embarked:")
+print(df['Embarked'].value_counts())
+
+# Преобразование категориальных переменных - создаем все категории явно
+print("\n--- Преобразование категориальных переменных ---")
+categorical_cols = ['Sex', 'Embarked']
+df = pd.get_dummies(df, columns=categorical_cols, drop_first=False)
+
+print("\nДанные после преобразования категориальных переменных:")
+print(df[['Sex_male', 'Sex_female', 'Embarked_C', 'Embarked_Q', 'Embarked_S']].head(10))
+
+# Объяснение преобразованных переменных
+print("\n--- Объяснение преобразованных переменных ---")
+print("Sex_male = 1 если мужчина, 0 если женщина")
+print("Sex_female = 1 если женщина, 0 если мужчина")
+print("Embarked_C = 1 если порт Cherbourg, иначе 0")
+print("Embarked_Q = 1 если порт Queenstown, иначе 0") 
+print("Embarked_S = 1 если порт Southampton, иначе 0")
+
+# Распределение возраста
+plt.figure(figsize=(10, 6))
+plt.hist(df['Age'], bins=15, color='lightblue', edgecolor='navy', alpha=0.7)
+plt.title("Распределение возраста пассажиров")
+plt.xlabel("Возраст")
+plt.ylabel("Частота")
+plt.grid(axis='y', alpha=0.3)
+plt.show()
+
+# Создание нового признака
+df['FamilySize'] = df['SibSp'] + df['Parch'] + 1  # +1 для учета самого пассажира
+
+print("\nПример данных с новым признаком размера семьи:")
+print(df[['SibSp', 'Parch', 'FamilySize']].head(8))
+
+# Дополнительный анализ: выживаемость по полу и порту посадки
+print("\n--- Дополнительный анализ ---")
+print("Выживаемость по полу:")
+survival_by_sex = df.groupby('Sex_female')['Survived'].mean()
+print(survival_by_sex)
+
+print("\nВыживаемость по порту посадки:")
+if 'Embarked_C' in df.columns:
+    survival_by_embarked = df.groupby([df['Embarked_C'], df['Embarked_Q'], df['Embarked_S']])['Survived'].mean()
+    print("C (Cherbourg):", df[df['Embarked_C'] == 1]['Survived'].mean())
+    print("Q (Queenstown):", df[df['Embarked_Q'] == 1]['Survived'].mean())
+    print("S (Southampton):", df[df['Embarked_S'] == 1]['Survived'].mean())
+
+# Проверка итоговых столбцов
+print("\n--- Итоговые столбцы в DataFrame ---")
+print(f"Всего столбцов: {len(df.columns)}")
+print("Столбцы:", list(df.columns))
