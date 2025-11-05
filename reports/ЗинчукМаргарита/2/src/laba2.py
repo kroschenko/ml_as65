@@ -1,93 +1,42 @@
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import SVC
-from sklearn.metrics import recall_score, confusion_matrix
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
 
-# 1. Загрузка данных и стандартизация
-df = pd.read_csv('pima-indians-diabetes.csv', header=None)
-df.columns = ['pregnancies', 'glucose', 'blood_pressure', 'skin_thickness',
-              'insulin', 'bmi', 'diabetes_pedigree', 'age', 'outcome']
+# 1. Загрузка данных
+df = pd.read_csv('BostonHousing.csv')
 
-print("Датасет загружен. Размер:", df.shape)
-print("Распределение классов:")
-print(df['outcome'].value_counts())
+# 2. Подготовка данных - ВСЕ ПРИЗНАКИ для обучения
+X = df.drop(['MEDV', 'CAT. MEDV'], axis=1)
+y = df['MEDV']
 
-# 2. Разделение выборки 70/30
-X = df.drop('outcome', axis=1)
-y = df['outcome']
+# 3. Обучение модели на ВСЕХ признаках
+model = LinearRegression()
+model.fit(X, y)
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.3, random_state=42, stratify=y
-)
+# 4. Предсказания и метрики
+y_pred = model.predict(X)
+mse = mean_squared_error(y, y_pred)
+r2 = r2_score(y, y_pred)
 
-# Стандартизация данных
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
+print(f'MSE: {mse:.2f}')
+print(f'R2: {r2:.2f}')
 
-# 3. Обучение моделей с заданными параметрами
-print("\nОбучение моделей...")
+# 5. Визуализация - независимая для RM
+plt.figure(figsize=(10, 6))
+plt.scatter(df['RM'], df['MEDV'], alpha=0.6, color='blue', s=30)
 
-# k-NN с k=5
-knn_model = KNeighborsClassifier(n_neighbors=5)
-knn_model.fit(X_train_scaled, y_train)
-knn_pred = knn_model.predict(X_test_scaled)
-knn_recall = recall_score(y_test, knn_pred)
+# Отдельная регрессия только для RM для красивого графика
+rm_model = LinearRegression()
+rm_model.fit(df[['RM']], y)
+rm_pred = rm_model.predict(df[['RM']])
 
-# Decision Tree с max_depth=4
-dt_model = DecisionTreeClassifier(max_depth=4, random_state=42)
-dt_model.fit(X_train, y_train)
-dt_pred = dt_model.predict(X_test)
-dt_recall = recall_score(y_test, dt_pred)
-
-# SVM с линейным ядром
-svm_model = SVC(kernel='linear', random_state=42)
-svm_model.fit(X_train_scaled, y_train)
-svm_pred = svm_model.predict(X_test_scaled)
-svm_recall = recall_score(y_test, svm_pred)
-
-# 4. Сравнение производительности по recall
-print("\n" + "="*50)
-print("СРАВНЕНИЕ МОДЕЛЕЙ ПО RECALL")
-print("="*50)
-
-results = {
-    'k-NN (k=5)': knn_recall,
-    'Decision Tree (max_depth=4)': dt_recall,
-    'SVM (linear)': svm_recall
-}
-
-for model_name, recall in results.items():
-    print(f"{model_name}: Recall = {recall:.4f}")
-
-# Находим лучшую модель
-best_model = max(results, key=results.get)
-best_recall = results[best_model]
-
-print(f"\nЛучшая модель: {best_model} с Recall = {best_recall:.4f}")
-
-# 5. Обоснование для медицинской задачи
-print("\n" + "="*60)
-print("ОБОСНОВАНИЕ ВЫБОРА ДЛЯ МЕДИЦИНСКОЙ ЗАДАЧИ")
-print("="*60)
-
-print(f"""
-Для медицинской задачи предсказания диабета наиболее важной метрикой 
-является RECALL (полнота), так как пропуск заболевания (False Negative) 
-гораздо опаснее ложной тревоги (False Positive).
-
-РЕЗУЛЬТАТЫ:
-- k-NN (k=5): Recall = {knn_recall:.4f}
-- Decision Tree (max_depth=4): Recall = {dt_recall:.4f}  
-- SVM (linear): Recall = {svm_recall:.4f}
-
-ВЫВОД:
-Для данной медицинской задачи наиболее предпочтительной является 
-модель {best_model}, так как она обеспечивает наивысший показатель 
-recall ({best_recall:.4f}), что означает максимальное выявление 
-реальных случаев диабета и минимальное количество пропущенных 
-заболеваний.
-""")
+plt.plot(df['RM'], rm_pred, color='red', linewidth=2, label='Линия регрессии')
+plt.xlabel('Среднее количество комнат (RM)', fontsize=12)
+plt.ylabel('Медианная стоимость дома (MEDV)', fontsize=12)
+plt.title('Зависимость стоимости дома от количества комнат', fontsize=14)
+plt.grid(True, alpha=0.3)
+plt.legend()
+plt.tight_layout()
+plt.show()
