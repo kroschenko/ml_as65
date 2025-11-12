@@ -1,94 +1,102 @@
-# 1. Импорт библиотек и подготовка данных
+import torch
+import torch.nn as nn
+import torch.optim as optim
 from sklearn.datasets import load_digits
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.neural_network import MLPClassifier
-from sklearn.metrics import accuracy_score
-import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, f1_score
 import numpy as np
 
-# Загрузка датасета
-digits = load_digits()
-X, y = digits.data, digits.target
+# 1. Импорт библиотек и подготовка данных
+data = load_digits()
+X, y = data.data, data.target
 
-# Покажем пример изображения
-plt.figure(figsize=(8, 4))
-for i in range(8):
-    plt.subplot(2, 4, i + 1)
-    plt.imshow(digits.images[i], cmap='gray')
-    plt.title(f'Цифра: {digits.target[i]}')
-    plt.axis('off')
-plt.tight_layout()
-plt.show()
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Стандартизация данных
 scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
 
-# Разделение на обучающую и тестовую выборки
-X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+X_train = torch.tensor(X_train, dtype=torch.float32)
+X_test = torch.tensor(X_test, dtype=torch.float32)
+y_train = torch.tensor(y_train, dtype=torch.long)
+y_test = torch.tensor(y_test, dtype=torch.long)
 
-# 2. Модель с одним скрытым слоем (32 нейрона)
-model_one_layer = MLPClassifier(
-    hidden_layer_sizes=(32,),
-    activation='relu',
-    solver='adam',
-    learning_rate_init=0.001,
-    max_iter=500,
-    random_state=42
-)
+# 2. Определение архитектуры нейронной сети
+class MLP(nn.Module):
+    def __init__(self, input_size=64, hidden_size=32, num_layers=1):
+        super(MLP, self).__init__()
+        self.num_layers = num_layers
+        
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        
+        if num_layers == 2:
+            self.fc2 = nn.Linear(hidden_size, hidden_size)
+            self.fc3 = nn.Linear(hidden_size, 10)
+        else:
+            self.fc2 = nn.Linear(hidden_size, 10)
+            
+        self.softmax = nn.Softmax(dim=1)
 
-# 3. Модель с двумя скрытыми слоями (по 32 нейрона)
-model_two_layers = MLPClassifier(
-    hidden_layer_sizes=(32, 32),
-    activation='relu',
-    solver='adam',
-    learning_rate_init=0.001,
-    max_iter=500,
-    random_state=42
-)
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        
+        if self.num_layers == 2:
+            x = self.relu(self.fc2(x))
+            x = self.fc3(x)
+        else:
+            x = self.fc2(x)
+            
+        x = self.softmax(x)
+        return x
 
-# 4. Обучение моделей
-model_one_layer.fit(X_train, y_train)
-model_two_layers.fit(X_train, y_train)
+# 3. Инициализация модели, функции потерь и оптимизатора
+model_one_layer = MLP(hidden_size=32, num_layers=1)
+criterion = nn.CrossEntropyLoss()
+optimizer_one = optim.Adam(model_one_layer.parameters(), lr=0.001)
 
-# 5. Оценка моделей
-y_pred_one = model_one_layer.predict(X_test)
-y_pred_two = model_two_layers.predict(X_test)
+# 4. Написание цикла обучения (Training Loop)
+epochs = 1000
+for epoch in range(epochs):
+    model_one_layer.train()
+    optimizer_one.zero_grad()
+    outputs = model_one_layer(X_train)
+    loss = criterion(outputs, y_train)
+    loss.backward()
+    optimizer_one.step()
 
-accuracy_one = accuracy_score(y_test, y_pred_one)
-accuracy_two = accuracy_score(y_test, y_pred_two)
+# 5. Оценка модели (Evaluation)
+def evaluate_model(model, X_test, y_test):
+    model.eval()
+    with torch.no_grad():
+        outputs = model(X_test)
+        _, predicted = torch.max(outputs.data, 1)
+        accuracy = accuracy_score(y_test, predicted)
+        f1 = f1_score(y_test, predicted, average='weighted')
+    return accuracy, f1
 
-print(f"Точность с одним скрытым слоем: {accuracy_one:.4f}")
-print(f"Точность с двумя скрытыми слоями: {accuracy_two:.4f}")
+acc_one, f1_one = evaluate_model(model_one_layer, X_test, y_test)
 
-# Визуализация примеров предсказаний
-plt.figure(figsize=(12, 6))
+print("Модель с одним скрытым слоем:")
+print(f"Accuracy: {acc_one:.4f}, F1-score: {f1_one:.4f}")
 
-# Примеры правильных предсказаний
-correct_indices = np.where(y_pred_one == y_test)[0][:4]
+# Эксперимент: модель с двумя скрытыми слоями
+model_two_layers = MLP(hidden_size=32, num_layers=2)
+optimizer_two = optim.Adam(model_two_layers.parameters(), lr=0.001)
 
-for i, idx in enumerate(correct_indices):
-    plt.subplot(2, 4, i + 1)
-    plt.imshow(X_test[idx].reshape(8, 8), cmap='gray')
-    plt.title(f'Правильно: {y_test[idx]}')
-    plt.axis('off')
+for epoch in range(epochs):
+    model_two_layers.train()
+    optimizer_two.zero_grad()
+    outputs = model_two_layers(X_train)
+    loss = criterion(outputs, y_train)
+    loss.backward()
+    optimizer_two.step()
 
-# Примеры неправильных предсказаний
-wrong_indices = np.where(y_pred_one != y_test)[0]
-if len(wrong_indices) > 0:
-    for i, idx in enumerate(wrong_indices[:4]):
-        plt.subplot(2, 4, i + 5)
-        plt.imshow(X_test[idx].reshape(8, 8), cmap='gray')
-        plt.title(f'Ошибка: {y_test[idx]}→{y_pred_one[idx]}')
-        plt.axis('off')
+acc_two, f1_two = evaluate_model(model_two_layers, X_test, y_test)
 
-plt.tight_layout()
-plt.show()
+print("\nМодель с двумя скрытыми слоями:")
+print(f"Accuracy: {acc_two:.4f}, F1-score: {f1_two:.4f}")
 
-if accuracy_two > accuracy_one:
-    print("Точность улучшилась с добавлением второго скрытого слоя")
-elif accuracy_one > accuracy_two:
-    print("Точность ухудшилась с добавлением второго скрытого слоя")
-else:
-    print("Точность осталась одинаковой")
+print("\nСравнение точности:")
+print(f"Accuracy: {acc_one:.4f} -> {acc_two:.4f} (изменение: {acc_two - acc_one:+.4f})")
