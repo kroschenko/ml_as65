@@ -268,4 +268,4 @@ try:
     print("\nРезультаты сохранены в файл 'model_comparison_results.csv'")
 except Exception as e:
     print(f"\nНе удалось сохранить файл: {e}")
-    
+
