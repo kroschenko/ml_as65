@@ -118,14 +118,25 @@ def predict_mlp(X_s):
     Z1 = X_s.dot(W1) + b1
     H = sigmoid(Z1)
     Y_hat = H.dot(W2) + b2
-    return Y_hat
+    return Z1, H, Y_hat
 
-Y_train_pred = predict_mlp(X_train_s)
-Y_test_pred = predict_mlp(X_test_s)
 
+Y_train_pred = predict_mlp(X_train_s)[2]  # берем только Y_hat
+Y_test_pred = []
+
+for i in range(len(X_test_s)):
+    _, _, y_pred = predict_mlp(X_test_s[i].reshape(1, -1))  # одно окно
+    Y_test_pred.append(y_pred.item())  
+
+# после цикла преобразуем список в массив NumPy
+Y_test_pred = np.array(Y_test_pred)
+
+# считаем ошибки
 mse_train = np.mean((Y_train_pred - Y_train)**2)
-mse_test = np.mean((Y_test_pred - Y_test)**2)
+mse_test = np.mean((Y_test.flatten() - Y_test_pred)**2)
 print(f"\nMLP Results: MSE_train={mse_train:.6f}, MSE_test={mse_test:.6f}")
+
+
 
 # Графики
 plt.figure(figsize=(10,4))
@@ -157,8 +168,8 @@ print(df_res_train.head(10).to_string(index=False))
 # Таблица результатов для теста
 df_res_test = pd.DataFrame({
     "target": Y_test.flatten(),
-    "pred": Y_test_pred.flatten(),
-    "error": (Y_test_pred - Y_test).flatten()
+    "pred": np.array(Y_test_pred).flatten(),
+    "error": (np.array(Y_test_pred) - Y_test.flatten())
 })
 print("\nTest MSE sample:")
 print(df_res_test.head(10).to_string(index=False))
