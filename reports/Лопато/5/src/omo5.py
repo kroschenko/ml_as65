@@ -20,7 +20,7 @@ def sigmoid(x):
 def sigmoid_deriv_from_activation(a_sigmoid):
     return a_sigmoid * (1.0 - a_sigmoid)
 
-def generate_series(a, b, c, d, x_min=-10, x_max=10, step=0.01):
+def generate_series(a, b, c, d, x_min=-20, x_max=20, step=0.01):
     x_vals = np.arange(x_min, x_max + step, step)
     y_vals = a * np.cos(b * x_vals) + c * np.sin(d * x_vals)
     return x_vals, y_vals
@@ -97,7 +97,7 @@ def train(X_train, y_train, W1, b1, W2, b2, epochs, lr):
     return W1, b1, W2, b2, loss_history
 
 def main():
-    x_vals, y_vals = generate_series(a, b, c, d, x_min=-10, x_max=10)
+    x_vals, y_vals = generate_series(a, b, c, d, x_min=-20, x_max=20)
 
     X, Y = make_supervised_from_series(y_vals, window_size)
     split = int(train_ratio * len(X))
