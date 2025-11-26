@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 a, b, c, d = 0.1, 0.1, 0.05, 0.1
 window_size = 6
 hidden_size = 2
-epochs = 2500
-lr = 0.05
+epochs = 20000
+lr = 0.15
 train_ratio = 0.7
 
 OUT_DIR = "lab5_variant2_results"
