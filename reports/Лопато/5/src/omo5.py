@@ -20,7 +20,7 @@ def sigmoid(x):
 def sigmoid_deriv_from_activation(a_sigmoid):
     return a_sigmoid * (1.0 - a_sigmoid)
 
-def generate_series(a, b, c, d, x_min=-20, x_max=20, step=0.01):
+def generate_series(a, b, c, d, x_min=-100, x_max=100, step=0.01):
     x_vals = np.arange(x_min, x_max + step, step)
     y_vals = a * np.cos(b * x_vals) + c * np.sin(d * x_vals)
     return x_vals, y_vals
@@ -97,7 +97,7 @@ def train(X_train, y_train, W1, b1, W2, b2, epochs, lr):
     return W1, b1, W2, b2, loss_history
 
 def main():
-    x_vals, y_vals = generate_series(a, b, c, d, x_min=-20, x_max=20)
+    x_vals, y_vals = generate_series(a, b, c, d, x_min=-100, x_max=100)
 
     X, Y = make_supervised_from_series(y_vals, window_size)
     split = int(train_ratio * len(X))
@@ -141,8 +141,8 @@ def main():
     plt.savefig(os.path.join(OUT_DIR, "loss_curve.png"), dpi=150)
     plt.show()
 
-    plt.figure(figsize=(10, 4))
-    plt.plot(x_vals, y_vals, lw=2, color="tab:green", label="Эталонная функция")
+    plt.figure(figsize=(12, 4))
+    plt.plot(x_vals, y_vals, lw=1, color="tab:green", label="Эталонная функция")
     plt.title("Эталонная функция (плотная дискретизация)")
     plt.xlabel("x")
     plt.ylabel("y(x)")
@@ -152,8 +152,8 @@ def main():
     plt.savefig(os.path.join(OUT_DIR, "true_function_dense.png"), dpi=150)
     plt.show()
 
-    plt.figure(figsize=(10, 5))
-    plt.plot(range(len(y_vals)), y_vals, lw=2, label="Эталонная функция")
+    plt.figure(figsize=(12, 5))
+    plt.plot(range(len(y_vals)), y_vals, lw=1, label="Эталонная функция")
     plt.plot(range(window_size, window_size + len(y_train_pred)),
              y_train_pred.flatten(), "--", label="Прогноз (train)")
     plt.plot(range(window_size + len(y_train_pred),
