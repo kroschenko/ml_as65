@@ -9,14 +9,27 @@ Original file is located at
 
 import numpy as np
 import matplotlib.pyplot as plt
-a, b, c, d = 0.2, 0.2, 0.06, 0.2
-n_inputs = 8
-n_hidden = 3
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
 
-def generate_data(n_samples=1000):
-    x = np.linspace(0, 10, n_samples)
-    y = a * np.cos(d * x) + c * np.sin(d * x)
-    return x, y
+a = 0.2
+b = 0.2
+c = 0.06
+d = 0.2
+
+input_nodes = 8
+hidden_nodes = 3
+output_nodes = 1
+
+def generate_function(x):
+    return a * np.cos(b * x) + c * np.sin(d * x)
+
+def create_dataset(data, look_back=1):
+    X, y = [], []
+    for i in range(len(data) - look_back):
+        X.append(data[i:(i + look_back)])
+        y.append(data[i + look_back])
+    return np.array(X), np.array(y)
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
@@ -24,18 +37,12 @@ def sigmoid(x):
 def sigmoid_derivative(x):
     return x * (1 - x)
 
-def linear(x):
-    return x
-
-def linear_derivative(x):
-    return 1
-
-def initialize_weights(n_inputs, n_hidden):
+def initialize_weights(input_size, hidden_size, output_size):
     np.random.seed(42)
-    W1 = np.random.randn(n_inputs, n_hidden) * 0.1
-    b1 = np.zeros((1, n_hidden))
-    W2 = np.random.randn(n_hidden, 1) * 0.1
-    b2 = np.zeros((1, 1))
+    W1 = np.random.randn(input_size, hidden_size) * 0.1
+    b1 = np.zeros((1, hidden_size))
+    W2 = np.random.randn(hidden_size, output_size) * 0.1
+    b2 = np.zeros((1, output_size))
     return W1, b1, W2, b2
 
 def forward_propagation(X, W1, b1, W2, b2):
@@ -44,114 +51,119 @@ def forward_propagation(X, W1, b1, W2, b2):
     output = np.dot(hidden_output, W2) + b2
     return hidden_output, output
 
-def backward_propagation(X, y, hidden_output, output, W2, learning_rate):
-    m = X.shape[0]
+def backward_propagation(X, y, hidden_output, output, W1, W2, b1, b2, learning_rate):
+    m = y.shape[0]
+    output_error = output - y.reshape(-1, 1)
+    d_output = output_error / m
 
-    error_output = output - y.reshape(-1, 1)
-    d_output = error_output * linear_derivative(output)
+    dW2 = np.dot(hidden_output.T, d_output)
+    db2 = np.sum(d_output, axis=0, keepdims=True)
 
-    error_hidden = d_output.dot(W2.T)
-    d_hidden = error_hidden * sigmoid_derivative(hidden_output)
+    hidden_error = np.dot(d_output, W2.T)
+    d_hidden = hidden_error * sigmoid_derivative(hidden_output)
 
-    dW2 = hidden_output.T.dot(d_output) / m
-    db2 = np.sum(d_output, axis=0, keepdims=True) / m
-    dW1 = X.T.dot(d_hidden) / m
-    db1 = np.sum(d_hidden, axis=0, keepdims=True) / m
+    dW1 = np.dot(X.T, d_hidden)
+    db1 = np.sum(d_hidden, axis=0, keepdims=True)
 
-    return dW1, db1, dW2, db2, error_output
-
-def update_weights(W1, b1, W2, b2, dW1, db1, dW2, db2, learning_rate):
     W1 -= learning_rate * dW1
     b1 -= learning_rate * db1
     W2 -= learning_rate * dW2
     b2 -= learning_rate * db2
-    return W1, b1, W2, b2
 
-def prepare_sequences(data, n_inputs):
-    X, y = [], []
-    for i in range(len(data) - n_inputs):
-        X.append(data[i:i+n_inputs])
-        y.append(data[i+n_inputs])
-    return np.array(X), np.array(y)
+    return W1, b1, W2, b2, np.mean(np.square(output_error))
 
-def train_neural_network(X_train, y_train, n_inputs, n_hidden, learning_rate=0.01, epochs=1000):
-    W1, b1, W2, b2 = initialize_weights(n_inputs, n_hidden)
+def train_neural_network(X_train, y_train, epochs=3000, learning_rate=0.01):
+    W1, b1, W2, b2 = initialize_weights(input_nodes, hidden_nodes, output_nodes)
 
     errors = []
-
     for epoch in range(epochs):
         hidden_output, output = forward_propagation(X_train, W1, b1, W2, b2)
 
-        dW1, db1, dW2, db2, error_output = backward_propagation(
-            X_train, y_train, hidden_output, output, W2, learning_rate)
+        W1, b1, W2, b2, error = backward_propagation(
+            X_train, y_train, hidden_output, output, W1, W2, b1, b2, learning_rate
+        )
 
-        W1, b1, W2, b2 = update_weights(W1, b1, W2, b2, dW1, db1, dW2, db2, learning_rate)
+        errors.append(error)
 
-        mse = np.mean(error_output ** 2)
-        errors.append(mse)
-
-        if epoch % 100 == 0:
-            print(f"Эпоха {epoch}, MSE: {mse:.6f}")
+        if epoch % 200 == 0:
+            print(f"Эпоха {epoch}, Ошибка: {error:.6f}")
 
     return W1, b1, W2, b2, errors
 
 def predict(X, W1, b1, W2, b2):
-    hidden_output, output = forward_propagation(X, W1, b1, W2, b2)
-    return output.flatten()
+    _, output = forward_propagation(X, W1, b1, W2, b2)
+    return output
 
-x, y = generate_data(500)
+if __name__ == "__main__":
+    x_values = np.linspace(0, 100, 500)
+    y_values = generate_function(x_values)
 
-X, Y = prepare_sequences(y, n_inputs)
+    scaler = MinMaxScaler(feature_range=(-1, 1))
+    y_scaled = scaler.fit_transform(y_values.reshape(-1, 1)).flatten()
 
-split_idx = int(0.8 * len(X))
-X_train, X_test = X[:split_idx], X[split_idx:]
-y_train, y_test = Y[:split_idx], Y[split_idx:]
+    X, y = create_dataset(y_scaled, input_nodes)
 
-print(f"Размер обучающей выборки: {X_train.shape}")
-print(f"Размер тестовой выборки: {X_test.shape}")
+    split_ratio = 0.8
+    split_index = int(len(X) * split_ratio)
 
-W1, b1, W2, b2, errors = train_neural_network(X_train, y_train, n_inputs, n_hidden,
-                                              learning_rate=0.1, epochs=2000)
+    X_train, X_test = X[:split_index], X[split_index:]
+    y_train, y_test = y[:split_index], y[split_index:]
 
-y_train_pred = predict(X_train, W1, b1, W2, b2)
+    print(f"Размер обучающей выборки: {X_train.shape}")
+    print(f"Размер тестовой выборки: {X_test.shape}")
 
-y_test_pred = predict(X_test, W1, b1, W2, b2)
+    W1, b1, W2, b2, errors = train_neural_network(X_train, y_train, epochs=5000, learning_rate=0.1)
 
-train_errors = np.abs(y_train - y_train_pred)
-print(f"Средняя ошибка на обучении: {np.mean(train_errors):.6f}")
+    train_predictions = predict(X_train, W1, b1, W2, b2)
 
-test_errors = np.abs(y_test - y_test_pred)
-print(f"Средняя ошибка на тесте: {np.mean(test_errors):.6f}")
+    test_predictions = predict(X_test, W1, b1, W2, b2)
 
-plt.figure(figsize=(15, 10))
+    y_train_original = scaler.inverse_transform(y_train.reshape(-1, 1)).flatten()
+    train_predictions_original = scaler.inverse_transform(train_predictions).flatten()
 
-plt.subplot(2, 2, 1)
-plt.plot(x[:len(y_train)], y_train, 'b-', label='Истинные значения', alpha=0.7)
-plt.plot(x[:len(y_train)], y_train_pred, 'r--', label='Прогноз', alpha=0.7)
-plt.title('Прогнозируемая функция на участке обучения')
-plt.xlabel('Время')
-plt.ylabel('y')
-plt.legend()
-plt.grid(True)
+    y_test_original = scaler.inverse_transform(y_test.reshape(-1, 1)).flatten()
+    test_predictions_original = scaler.inverse_transform(test_predictions).flatten()
 
-plt.subplot(2, 2, 2)
-plt.plot(errors)
-plt.title('Изменение ошибки в процессе обучения')
-plt.xlabel('Итерация')
-plt.ylabel('MSE')
-plt.grid(True)
-plt.yscale('log')
+    print("\nРЕЗУЛЬТАТЫ ОБУЧЕНИЯ")
+
+    train_results = pd.DataFrame({
+        'Эталонное значение': y_train_original,
+        'Полученное значение': train_predictions_original,
+        'Отклонение': np.abs(y_train_original - train_predictions_original)
+    })
+
+    print(train_results.head(10).round(6))
+
+    print("\nРЕЗУЛЬТАТЫ ПРОГНОЗИРОВАНИЯ")
+
+    test_results = pd.DataFrame({
+        'Эталонное значение': y_test_original,
+        'Полученное значение': test_predictions_original,
+        'Отклонение': np.abs(y_test_original - test_predictions_original)
+    })
+
+    print(test_results.head(10).round(6))
+
+    plt.figure(figsize=(15, 12))
+
+    plt.subplot(3, 1, 1)
+    time_steps_train = range(len(y_train_original))
+    plt.plot(time_steps_train, y_train_original, 'b-', label='Эталонные значения', linewidth=2)
+    plt.plot(time_steps_train, train_predictions_original, 'r--', label='Прогноз ИНС', linewidth=1.5)
+    plt.title('График прогнозируемой функции на участке обучения')
+    plt.xlabel('Временной шаг')
+    plt.ylabel('Значение функции')
+    plt.legend()
+    plt.grid(True)
+
+    plt.subplot(3, 1, 2)
+    plt.plot(errors)
+    plt.title('Изменение ошибки в зависимости от итерации')
+    plt.xlabel('Итерация')
+    plt.ylabel('Среднеквадратичная ошибка')
+    plt.grid(True)
+    plt.yscale('log')
 
 
-plt.tight_layout()
-plt.show()
-
-print("\nТаблица результатов обучения (первые 10 примеров):")
-print("Эталонное\tПолученное\tОтклонение")
-for i in range(min(10, len(y_train))):
-    print(f"{y_train[i]:.6f}\t{y_train_pred[i]:.6f}\t{abs(y_train[i] - y_train_pred[i]):.6f}")
-
-print("\nТаблица результатов прогнозирования (первые 10 примеров):")
-print("Эталонное\tПолученное\tОтклонение")
-for i in range(min(10, len(y_test))):
-    print(f"{y_test[i]:.6f}\t{y_test_pred[i]:.6f}\t{abs(y_test[i] - y_test_pred[i]):.6f}")
+    plt.tight_layout()
+    plt.show()
